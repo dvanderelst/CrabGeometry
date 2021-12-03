@@ -1,19 +1,8 @@
-# This is a sample Python script.
-from scipy.spatial.transform import Rotation as R
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import math
 from matplotlib import pyplot
 import numpy
-import random
 
 
-def plot_history(history, color):
-    n = history.shape[0]
-    ones = numpy.ones(n) * 0.01
-    pyplot.plot(history[:, 0], history[:, 1], color, alpha=0.5)
-    pyplot.quiver(history[:, 0], history[:, 1], ones, ones, angles=history[:, 2], zorder=100,color='r')
-    pyplot.quiver(history[:, 0], history[:, 1], ones, ones, angles=history[:, 2]+90, zorder=100,color='g')
 
 
 # xy in a frame 1 to a frame 2 whose origin lies at dx,dy in frame 1 and rotated by rot
@@ -27,7 +16,7 @@ def convert_tr(x, y, dx, dy, rot):
     return x_rotated, y_rotated
 
 
-# # xy in a frame 1 to a frame 2 whose origin lies at dx,dy in frame 1 and rotated by rot
+# xy in a frame 1 to a frame 2 whose origin lies at dx,dy in frame 1 and rotated by rot
 def convert_rt(x, y, dx, dy, rot):
     cos_rot = math.cos(math.radians(rot))
     sin_rot = math.sin(math.radians(rot))
@@ -84,6 +73,7 @@ class Frame:
         crab_message = 'X=%.4f, Y=%.4f, ROT=%.4f, EYE=%.4f' % self.state
         print(crab_message)
 
+
     @property
     def state(self):
         return self.x, self.y, self.orientation, self.eye
@@ -93,24 +83,16 @@ class Frame:
         array = numpy.array(self.trace)
         return array
 
+# a = Frame()
+# a.step(0,100)
+# a.step(90,100)
+# a.step(130,100)
+# a.plot()
+#
+#
+# print(a.world2frame(100,230))
+# print(a.frame2world(130,0))
 
-# f = Frame()
-# f.step(0,100)
-# f.step(-45,100)
-# f.step(-1000,100)
-# f.step(100000,1000)
-# f.print_state()
-#
-# x = 99
-# y = 123
-#
-# print('-----------------')
-# print(x, y)
-# x, y = f.frame2world(x,y)
-# print(x, y)
-# x,y = f.world2frame(x,y)
-# print(x, y)
-#
 class Crab:
     def __init__(self):
         self.estimated_frame = Frame()
@@ -125,10 +107,8 @@ class Crab:
         if update_estimation: self.estimated_frame.move_eye(rotation)
 
     def estimated_burrow_location(self):
-        dx = self.estimated_frame.x
-        dy = self.estimated_frame.y
-        x = self.real_frame.x - dx
-        y = self.real_frame.y - dy
+        dx, dy = self.real_frame.world2frame(0,0)
+        x,y = self.estimated_frame.frame2world(dx, dy)
         return x, y
 
     def relative_estimated_burrow_location(self):
@@ -149,22 +129,48 @@ class Crab:
         print(x, y)
 
     def plot(self):
+
+        pyplot.figure()
         real_history = self.real_frame.history
-        estimated_history = self.estimated_frame.history
-        plot_history(real_history, color='k-')
-        plot_history(estimated_history, color='b--')
-        x, y = self.estimated_burrow_location()
-        pyplot.scatter(x, y, color='b', s=100, alpha=0.5)
+        n = real_history.shape[0]
+        ones = numpy.ones(n)
+        pyplot.plot(real_history[:, 0], real_history[:, 1], 'k',linewidth=2, alpha=0.5)
+        pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2], zorder=100,color='r', )
+        pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2]+90, zorder=100,color='g')
         pyplot.scatter(0, 0, color='k', s=100, alpha=0.5)
+        pyplot.title('Real')
+        pyplot.grid()
+        ax = pyplot.gca()
+        ax.set_aspect('equal', 'box')
+
+        pyplot.figure()
+        estimated_history = self.estimated_frame.history
+        n = estimated_history.shape[0]
+        ones = numpy.ones(n)
+        pyplot.plot(estimated_history[:, 0], estimated_history[:, 1], 'k', linewidth=2, alpha=0.5)
+        pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2], zorder=100, color='r', )
+        pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2] + 90, zorder=100, color='g')
+        x, y = self.estimated_burrow_location()
+        pyplot.scatter(x, y, color='k', s=100, alpha=0.5)
+        pyplot.title('Estimated')
         pyplot.grid()
         ax = pyplot.gca()
         ax.set_aspect('equal', 'box')
         pyplot.show()
 
 
-f = Crab()
-f.step(0, 130)
-f.step(90, 130)
-f.step(120, 200, update_estimation=True)
-f.print_states()
-f.plot()
+
+
+
+# def plot_history(history, color):
+#     n = history.shape[0]
+#     ones = numpy.ones(n)
+#     pyplot.plot(history[:, 0], history[:, 1], color, alpha=0.5)
+#     pyplot.quiver(history[:, 0], history[:, 1], ones, ones, angles=history[:, 2], zorder=100,color='r', )
+#     pyplot.quiver(history[:, 0], history[:, 1], ones, ones, angles=history[:, 2]+90, zorder=100,color='g')
+# f = Crab()
+# f.step(0, 130)
+# f.step(90, 130)
+# f.step(120, 200, update_estimation=True)
+# f.print_states()
+# f.plot()
