@@ -1,33 +1,7 @@
 import math
 from matplotlib import pyplot
+import transformations
 import numpy
-
-
-
-
-# xy in a frame 1 to a frame 2 whose origin lies at dx,dy in frame 1 and rotated by rot
-def convert_tr(x, y, dx, dy, rot):
-    cos_rot = math.cos(math.radians(rot))
-    sin_rot = math.sin(math.radians(rot))
-    x_translated = x - dx
-    y_translated = y - dy
-    x_rotated = cos_rot * x_translated + sin_rot * y_translated
-    y_rotated = -sin_rot * x_translated + cos_rot * y_translated
-    return x_rotated, y_rotated
-
-
-# xy in a frame 1 to a frame 2 whose origin lies at dx,dy in frame 1 and rotated by rot
-def convert_rt(x, y, dx, dy, rot):
-    cos_rot = math.cos(math.radians(rot))
-    sin_rot = math.sin(math.radians(rot))
-
-    x_rotated = cos_rot * x + sin_rot * y
-    y_rotated = -sin_rot * x + cos_rot * y
-    x_translated = x_rotated - dx
-    y_translated = y_rotated - dy
-
-    return x_translated, y_translated
-
 
 class Frame:
     def __init__(self):
@@ -55,7 +29,7 @@ class Frame:
         dy = self.y
         rot = self.orientation
         if eye: rot = rot + self.eye
-        x, y = convert_rt(x, y, -dx, -dy, -rot)
+        x, y = transformations.frame2world(x, y, dx, dy, rot)
         return x, y
 
     def world2frame(self, x, y, eye=False):
@@ -63,7 +37,7 @@ class Frame:
         dy = self.y
         rot = self.orientation
         if eye: rot = rot + self.eye
-        x, y = convert_tr(x, y, dx, dy, rot)
+        x, y = transformations.world2frame(x, y, dx, dy, rot)
         return x, y
 
     def move_eye(self, rotation=0):
@@ -106,15 +80,12 @@ class Crab:
         self.real_frame.move_eye(rotation)
         if update_estimation: self.estimated_frame.move_eye(rotation)
 
-    def estimated_burrow_location(self):
-        dx, dy = self.real_frame.world2frame(0,0)
-        x,y = self.estimated_frame.frame2world(dx, dy)
+    def estimate_burrow_location(self):
+        dx, dy = self.estimated_frame.world2frame(0,0)
+        x,y = self.real_frame.frame2world(dx, dy)
         return x, y
 
-    def relative_estimated_burrow_location(self):
-        x, y = self.estimated_burrow_location()
-        x, y = self.estimated_frame.world2frame(x, y)
-        return x, y
+
 
     def print_states(self):
         print('Real state:')
@@ -122,11 +93,9 @@ class Crab:
         print('Estimated state:')
         self.estimated_frame.print_state()
         print('Estimated burrow:')
-        x, y = self.estimated_burrow_location()
+        x, y = self.estimate_burrow_location()
         print(x, y)
-        print('Estimated burrow (relative):')
-        x, y = self.relative_estimated_burrow_location()
-        print(x, y)
+
 
     def plot(self):
 
@@ -137,7 +106,9 @@ class Crab:
         pyplot.plot(real_history[:, 0], real_history[:, 1], 'k',linewidth=2, alpha=0.5)
         pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2], zorder=100,color='r', )
         pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2]+90, zorder=100,color='g')
-        pyplot.scatter(0, 0, color='k', s=100, alpha=0.5)
+        x, y = self.estimate_burrow_location()
+        pyplot.scatter(x, y, color='k', s=100, alpha=0.25)
+        pyplot.scatter(0, 0, color='k', s=100, alpha=0.75)
         pyplot.title('Real')
         pyplot.grid()
         ax = pyplot.gca()
@@ -150,7 +121,7 @@ class Crab:
         pyplot.plot(estimated_history[:, 0], estimated_history[:, 1], 'k', linewidth=2, alpha=0.5)
         pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2], zorder=100, color='r', )
         pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2] + 90, zorder=100, color='g')
-        x, y = self.estimated_burrow_location()
+        x, y = self.estimate_burrow_location()
         pyplot.scatter(x, y, color='k', s=100, alpha=0.5)
         pyplot.title('Estimated')
         pyplot.grid()
