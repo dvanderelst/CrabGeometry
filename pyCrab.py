@@ -12,6 +12,12 @@ class Frame:
         self.trace = []
         self.trace.append(self.state)
 
+    def move(self, rotation, dx, dy):
+        self.orientation = self.orientation + rotation
+        self.x = self.x + dx
+        self.y = self.y + dy
+        self.trace.append(self.state)
+
     def step(self, rotation, distance):
         self.orientation = self.orientation + rotation
         radians = math.radians(self.orientation)
@@ -57,26 +63,23 @@ class Frame:
         array = numpy.array(self.trace)
         return array
 
-# a = Frame()
-# a.step(0,100)
-# a.step(90,100)
-# a.step(130,100)
-# a.plot()
-#
-#
-# print(a.world2frame(100,230))
-# print(a.frame2world(130,0))
-
 class Crab:
     def __init__(self):
         self.estimated_frame = Frame()
         self.real_frame = Frame()
 
-    def step(self, rotation, translation, update_estimation=True):
-        self.real_frame.step(rotation, translation)
-        if update_estimation: self.estimated_frame.step(rotation, translation)
+    def step(self, rotation=0, distance=0, update_estimation=True):
+        self.real_frame.step(rotation, distance)
+        if update_estimation: self.estimated_frame.step(rotation, distance)
 
-    def move_eye(self, rotation, update_estimation=True):
+    def move(self, rotation=0, dx=0, dy=0, update_estimation=True):
+        self.real_frame.move(rotation, dx, dy)
+        if update_estimation: self.estimated_frame.move(rotation, dx, dy)
+
+    def update_estimation(self, rotation=0, dx=0, dy=0):
+        self.estimated_frame.move(rotation, dx, dy)
+
+    def move_eye(self, rotation=0, update_estimation=True):
         self.real_frame.move_eye(rotation)
         if update_estimation: self.estimated_frame.move_eye(rotation)
 
@@ -85,7 +88,14 @@ class Crab:
         x,y = self.real_frame.frame2world(dx, dy)
         return x, y
 
-
+    def burrow_estimation_components(self):
+        dx, dy = self.estimated_frame.world2frame(0, 0)
+        x1, y1 = self.real_frame.frame2world(dx, 0)
+        x2, y2 = self.real_frame.frame2world(dx, dy)
+        xs = [self.real_frame.x, x1, x2]
+        ys = [self.real_frame.y, y1, y2]
+        steps = [xs, ys]
+        return steps
 
     def print_states(self):
         print('Real state:')
@@ -96,9 +106,7 @@ class Crab:
         x, y = self.estimate_burrow_location()
         print(x, y)
 
-
-    def plot(self):
-
+    def plot(self, aspect_equal=True):
         pyplot.figure()
         real_history = self.real_frame.history
         n = real_history.shape[0]
@@ -107,12 +115,17 @@ class Crab:
         pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2], zorder=100,color='r', )
         pyplot.quiver(real_history[:, 0], real_history[:, 1], ones, ones, angles=real_history[:, 2]+90, zorder=100,color='g')
         x, y = self.estimate_burrow_location()
+        steps = self.burrow_estimation_components()
+        pyplot.plot(steps[0][0:2],steps[1][0:2], 'k--')
+        pyplot.plot(steps[0][1:], steps[1][1:], 'k--')
+
         pyplot.scatter(x, y, color='k', s=100, alpha=0.25)
         pyplot.scatter(0, 0, color='k', s=100, alpha=0.75)
-        pyplot.title('Real')
+        pyplot.title('Physical path and estimated burrow location')
         pyplot.grid()
         ax = pyplot.gca()
-        ax.set_aspect('equal', 'box')
+        if aspect_equal: ax.set_aspect('equal', 'box')
+        pyplot.show()
 
         pyplot.figure()
         estimated_history = self.estimated_frame.history
@@ -121,12 +134,10 @@ class Crab:
         pyplot.plot(estimated_history[:, 0], estimated_history[:, 1], 'k', linewidth=2, alpha=0.5)
         pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2], zorder=100, color='r', )
         pyplot.quiver(estimated_history[:, 0], estimated_history[:, 1], ones, ones, angles=estimated_history[:, 2] + 90, zorder=100, color='g')
-        x, y = self.estimate_burrow_location()
-        pyplot.scatter(x, y, color='k', s=100, alpha=0.5)
-        pyplot.title('Estimated')
+        pyplot.title('Recorded path')
         pyplot.grid()
         ax = pyplot.gca()
-        ax.set_aspect('equal', 'box')
+        if aspect_equal: ax.set_aspect('equal', 'box')
         pyplot.show()
 
 
