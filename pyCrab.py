@@ -106,7 +106,7 @@ class Crab:
         x, y = self.estimate_burrow_location()
         print(x, y)
 
-    def plot(self, aspect_equal=True):
+    def plot(self, aspect_equal=True, show=False):
         pyplot.figure()
         real_history = self.real_frame.history
         n = real_history.shape[0]
@@ -138,7 +138,7 @@ class Crab:
         pyplot.grid()
         ax = pyplot.gca()
         if aspect_equal: ax.set_aspect('equal', 'box')
-        pyplot.show()
+        if show: pyplot.show()
 
 
 
